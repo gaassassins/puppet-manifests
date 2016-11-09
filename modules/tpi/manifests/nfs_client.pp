@@ -67,7 +67,8 @@ class tpi::nfs_client (
 
   service{ 'autofs':
     ensure => 'running',
-    enable => true
+    enable => true,
+    require => Service['nscd'],
   }
 
 }
