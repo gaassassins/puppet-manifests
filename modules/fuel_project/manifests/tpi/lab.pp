@@ -95,6 +95,12 @@ class fuel_project::tpi::lab (
     group   => 'root',
     content => template('fuel_project/tpi/kvm.conf.erb'),
   }
+  cron { 'fstrim_daily':
+    minute => '30',
+    hour => '0',
+    user => 'root',
+    command => "/bin/date >> /var/log/fstrim.log && /sbin/fstrim -v  / >> /var/log/fstrim.log";
+  }
   
   ## to avoid network problems with jumbo frames 
   #
