@@ -1,6 +1,6 @@
 # Used for deployment of TPI lab
 class fuel_project::tpi::lab (
-  $btsync_secret = $fuel_project::tpi::params::btsync_secret,
+  #$btsync_secret = $fuel_project::tpi::params::btsync_secret,
   $sudo_commands = [ '/sbin/ebtables', '/sbin/iptables' ],
   $local_home_basenames = [ 'jenkins' ],
 ) {
@@ -36,29 +36,6 @@ class fuel_project::tpi::lab (
 
   ensure_packages($tpi_packages)
 
-  service { 'btsync':
-    ensure  => 'running',
-    enable  => true,
-    require => Package['btsync'],
-  }
-
-  file { '/etc/default/btsync':
-    notify  => Service['btsync'],
-    mode    => '0600',
-    owner   => 'btsync',
-    group   => 'btsync',
-    content => template('fuel_project/tpi/btsync.erb'),
-    require => File['/etc/btsync/tpi.conf'],
-  }
-
-  file { '/etc/btsync/tpi.conf':
-    notify  => Service['btsync'],
-    mode    => '0600',
-    owner   => 'btsync',
-    group   => 'btsync',
-    content => template('fuel_project/tpi/tpi.conf.erb'),
-    require => Package['btsync'],
-  }
 
   # transparent hugepage defragmentation leads to slowdowns
   # in our environments (kvm+vmware workstation), disable it
