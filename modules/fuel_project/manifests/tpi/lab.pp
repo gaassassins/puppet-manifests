@@ -22,6 +22,8 @@ class fuel_project::tpi::lab (
   }
 
   class { '::tpi::vmware_lab' : }
+  class { '::tpi::nfsserver' : }
+
 
   # these packages will be installed from tpi apt repo defined in hiera
   $tpi_packages = [
