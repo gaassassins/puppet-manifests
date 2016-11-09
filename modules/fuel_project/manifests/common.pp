@@ -86,7 +86,22 @@ class fuel_project::common (
 
   zabbix::item { 'software-zabbix-check' :
     template => 'fuel_project/common/zabbix/software.conf.erb',
+  } ->
+  file { '/usr/local/bin/smartctl-disks-discovery.pl' :
+    ensure  => 'present',
+    owner   => 'zabbix',
+    group   => 'zabbix',
+    mode    => '0755',
+    content => template('zabbix/agent/smartctl-disks-discovery.pl.erb'),
+  }->
+  file { '/etc/zabbix/zabbix_agentd.conf.d/smartctl-check.conf' :
+    ensure  => 'present',
+    owner   => 'zabbix',
+    group   => 'zabbix',
+    mode    => '0644',
+    content => template('zabbix/agent/smartctl-check.conf.erb'),
   }
+
 
   # Zabbix hardware item
   ensure_packages(['smartmontools'])

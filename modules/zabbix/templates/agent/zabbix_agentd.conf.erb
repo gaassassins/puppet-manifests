@@ -6,8 +6,9 @@ EnableRemoteCommands=<%= @enable_remote_commands ? 1 : 0 %>
 LogRemoteCommands=<%= @log_remote_commands ? 1 : 0 %>
 
 Server=<%= @zabbix_server %>, 127.0.0.1
+ServerActive=<%= @zabbix_server %>
 ListenPort=<%= @listen_port %>
-ListenIP=<%= @listen_address %>
+#ListenIP=<%= @listen_address %>
 StartAgents=<%= @start_agents %>
 <% if @server_active %>
 ServerActive=<%= @server_active %>
