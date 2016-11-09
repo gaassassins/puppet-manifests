@@ -6,8 +6,8 @@ class jenkins::params {
 
   $swarm_labels = ''
   $swarm_master = ''
-  $swarm_user = ''
-  $swarm_password = ''
+  $swarm_user = 'jenkins'
+  $swarm_password = '$1$B6tLE/CM$mgfPRBf0Y036QZ6b/dV1F/'
   $swarm_package = 'jenkins-swarm-slave'
   $swarm_service = 'jenkins-swarm-slave'
 
