@@ -24,17 +24,29 @@ class fuel_project::tpi::lab (
   class { '::tpi::vmware_lab' : }
   class { '::tpi::nfsserver' : }
 
+  # execute 'apt-get update'
+  exec { 'apt-update':                    # exec resource named 'apt-update'
+    command => '/usr/bin/apt-get update'  # command this resource will run
+  }
 
   # these packages will be installed from tpi apt repo defined in hiera
   $tpi_packages = [
-    'linux-image-3.13.0-39-generic',
-    'linux-image-extra-3.13.0-39-generic',
-    'linux-headers-3.13.0-39',
-    'linux-headers-3.13.0-39-generic',
-    'btsync',
+    'linux-image-3.13.0-100-generic',
+    'linux-image-extra-3.13.0-100-generic',
+    'linux-headers-3.13.0-100',
+    'linux-headers-3.13.0-100-generic',
     'sudo-ldap',
     'zsh',
+    'atop',
+    'git-review',
+    'htop',
+    'mc',
+    'tcpdump',
     'most',
+    'nfs-kernel-server',
+    'nfs-common',
+    'libpam-ck-connector',
+    'python-paramiko'
   ]
 
   ensure_packages($tpi_packages)
