@@ -19,16 +19,13 @@ class fuel_project::common (
   $sudoers_base       = '',
   $tls_cacertdir      = '',
 ) {
-  class { '::atop' :}
   class { '::ntp' :}
   class { '::puppet::agent' :}
   class { '::ssh::authorized_keys' :}
   class { '::ssh::sshd' :
     apply_firewall_rules => $external_host,
   }
-  # TODO: remove ::system module
-  # ... by spliting it's functions to separate modules
-  # or reusing publically available ones
+
   class { '::system' :}
   class { '::zabbix::agent' :
     apply_firewall_rules => $external_host,
@@ -126,7 +123,7 @@ class fuel_project::common (
 
   mount { '/' :
     ensure  => 'present',
-    options => 'defaults,errors=remount-ro,noatime,nodiratime,barrier=0',
+    options => 'defaults,errors=remount-ro,noatime,nodiratime,barrier=0,discard',
   }
 
   file { '/etc/hostname' :
