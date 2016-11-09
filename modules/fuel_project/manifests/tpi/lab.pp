@@ -95,6 +95,11 @@ class fuel_project::tpi::lab (
     group   => 'root',
     content => template('fuel_project/tpi/kvm.conf.erb'),
   }
+
+  exec {'set reserved space to 2% for vg00-root':
+    command => '/sbin/tune2fs -m2 /dev/mapper/vg00-root',
+  }
+
   cron { 'fstrim_daily':
     minute => '30',
     hour => '0',
