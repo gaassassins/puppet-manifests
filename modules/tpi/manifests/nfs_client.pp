@@ -1,6 +1,6 @@
 # Used for TPI nfs clients
 class tpi::nfs_client (
-  $nfs_servers = [ 'tpi-s1', 'tpi-s2' ],
+  $nfs_servers = [ 'pce-storage' ],
   $local_home_base = '/usr/local/home',
   $local_home_basenames = [],
 ) {
