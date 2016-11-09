@@ -26,17 +26,23 @@ class tpi::vmware_lab (
 
   file { [ $vmware_home, $vmware_shared_home ]:
     ensure => directory,
-    mode   => '0755',
+    mode   => '0655',
     owner  => 'root',
     group  => 'root',
+    recurse => true,
   }
 
   rsync::get { '/etc/vmware/':
     source    => "rsync://${rsync_server}/storage/vmware-envs/config/vmware/",
-    purge     => false,
+    purge     => true,
     recursive => true,
     options   => '-aS',
-    onlyif    => '! pgrep vmware-vmx',
+    onlyif    => [
+                  '! pgrep vmware-vmx',
+                  '! test -f /var/lib/vmware_nodeploy',
+                 ],
+    timeout   => 0,
+  }
 
   exec { 'flush_workstation_network':
     command => "iface=$(ip route get ${vmware_default_public_gw} | cut -d' ' -f3-3 | tr -d '\n'); [ ! -z $iface ] && ip address flush $iface || echo 'no iface with such address'",
@@ -66,11 +72,15 @@ class tpi::vmware_lab (
 
   rsync::get { "'${vmware_shared_home}'" :
     source    => $rsync_source,
-    purge     => true,
+    purge     => false,
     recursive => true,
-    options   => '-aS',
+    options   => '-aS --delete',
     require   => File[$vmware_shared_home],
-    onlyif    => '! pgrep vmware-vmx',
+    onlyif    => [
+                  '! pgrep vmware-vmx',
+                  '! test -f /var/lib/vmware_nodeploy',
+                 ],
+    timeout   => 0,
   }
 
   validate_re(
@@ -84,6 +94,7 @@ class tpi::vmware_lab (
     --console --required --eulas-agreed\
     --set-setting vmware-workstation serialNumber ${vmware_ws_serial}",
     creates => '/usr/bin/vmware',
+    onlyif    => [ '! test -f /var/lib/vmware_nodeploy' ] ,
     require => [
       Class['::tpi::nfs_client'],
       Rsync::Get['/etc/vmware/'],
@@ -97,6 +108,7 @@ class tpi::vmware_lab (
     hasstatus => false,
     pattern   => 'vmware-authdlauncher',
     require   => Exec['install_vmware_workstation'],
+    subscribe => User['vmware'],
   }
 
   service { 'vmware-workstation-server':
@@ -105,6 +117,7 @@ class tpi::vmware_lab (
     hasstatus => false,
     pattern   => 'vmware-hostd',
     require   => Exec['install_vmware_workstation'],
+    subscribe => User['vmware'],
   }
 
   service { 'vmware-USBArbitrator':
@@ -113,6 +126,7 @@ class tpi::vmware_lab (
     hasstatus => false,
     pattern   => 'vmware-usbarbitrator',
     require   => Exec['install_vmware_workstation'],
+    subscribe => User['vmware'],
   }
 
   user { 'vmware' :
@@ -122,7 +136,5 @@ class tpi::vmware_lab (
     comment  => 'VMWare Workstation user',
     name     => 'vmware',
     shell    => '/bin/false',
-    require  => Exec['install_vmware_workstation'],
   }
-
 }
