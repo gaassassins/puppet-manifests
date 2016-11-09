@@ -12,6 +12,7 @@ class tpi::vmware_lab (
     'libxcursor1',
     'libxinerama1',
     'libxi6',
+    'libpam-ck-connector',
   ]
 
   ensure_packages($vmware_packages)
