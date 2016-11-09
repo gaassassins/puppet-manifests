@@ -4,6 +4,7 @@ class tpi::vmware_lab (
   $vmware_ws_serial = '',
   $vmware_ws_envs = [ 'vsphere',  ],
   $rsync_server = '127.0.0.1',
+  $vmware_default_public_gw = '172.16.0.1',
 ) {
 
   $vmware_packages=[
@@ -18,6 +19,10 @@ class tpi::vmware_lab (
   $vmware_home='/var/lib/vmware'
   $vmware_shared_home="${vmware_home}/Shared VMs"
 
+  #sysctl { 'net.inet.raw.maxdgram' :
+  #  value => '16384',
+  #}
+
   file { [ $vmware_home, $vmware_shared_home ]:
     ensure => directory,
     mode   => '0755',
@@ -31,6 +36,28 @@ class tpi::vmware_lab (
     recursive => true,
     options   => '-aS',
     onlyif    => '! pgrep vmware-vmx',
+
+  exec { 'flush_workstation_network':
+    command => "iface=$(ip route get ${vmware_default_public_gw} | cut -d' ' -f3-3 | tr -d '\n'); [ ! -z $iface ] && ip address flush $iface || echo 'no iface with such address'",
+    onlyif    => [ '! test -f /var/lib/vmware_nodeploy' ] ,
+  }
+
+  exec { 'workstation_network_restart':
+    command => 'vmware-networks --stop; vmware-networks --start',
+    onlyif    => [ '! test -f /var/lib/vmware_nodeploy' ] ,
+  }
+
+  file { '/etc/vmware/networking':
+    ensure  => 'present',
+    mode    => '0655',
+    owner   => 'root',
+    group   => 'root',
+    content => template('tpi/workstation_networking.erb'),
+    require => [
+      Rsync::Get['/etc/vmware/'],
+      Exec['flush_workstation_network'],
+      Exec['workstation_network_restart'],
+    ],
   }
 
   $vmware_env_sources=suffix(prefix($vmware_ws_envs,"rsync://${rsync_server}/storage/vmware-envs/"),'/')
