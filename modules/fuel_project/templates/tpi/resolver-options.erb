@@ -1,0 +1,10 @@
+#
+# Prepend resolver options to /etc/resolv.conf after dhclient`
+# regenerates the file. See man (5) resolver for more details.
+#
+#RESOLV_CONF=$(cat /etc/resolv.conf)
+OPTIONS="options timeout:1 attempts:4"
+if [[ `grep -q "${OPTIONS}" /etc/resolv.conf && echo $?` != 0 ]]; then
+  echo $OPTIONS >> /etc/resolv.conf
+fi
+

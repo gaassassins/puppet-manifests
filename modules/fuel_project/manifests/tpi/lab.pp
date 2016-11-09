@@ -81,6 +81,14 @@ class fuel_project::tpi::lab (
     group   => 'root',
     content => template('fuel_project/tpi/dhclient.conf.erb'),
   }
+
+  file { '/etc/dhcp/dhclient-exit-hooks.d/resolver-options':
+    mode    => '0644',
+    owner   => 'root',
+    group   => 'root',
+    content => template('fuel_project/tpi/resolver-options.erb'),
+  }
+
   file { '/etc/modprobe.d/kvm.conf':
     mode    => '0755',
     owner   => 'root',
