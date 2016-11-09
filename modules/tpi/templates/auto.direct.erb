@@ -1,1 +1,4 @@
-/storage -fstype=nfs4,rw,nosuid,soft <% @nfs_servers.each do |server| -%> <%= server %>:/storage <% end -%>
+/storage -fstype=nfs4,ro,nosuid,soft <% @nfs_servers.each do |server| -%> <%= server %>:/u02/storage
+<% end -%>
+/btsync -fstype=nfs4,rw,nosuid,soft <% @nfs_servers.each do |server| -%> <%= server %>:/u02/btsync 
+<% end -%>
