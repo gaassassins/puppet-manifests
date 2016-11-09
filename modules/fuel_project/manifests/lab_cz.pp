@@ -10,10 +10,16 @@ class fuel_project::lab_cz (
   include ssh::ldap
   class { 'libvirt' :
     qemu               => false,
-    listen_tcp         => false,
+    listen_tcp         => true,
     listen_tls         => false,
+    tcp_port           => '16509',
     unix_sock_rw_perms => '0777',
     unix_sock_group    => 'libvirtd',
+    listen_addr        => '0.0.0.0',
+    mdns_adv           => false, 
+    log_level          => 1,
+    audit_level        => 0,
+    
   }
 
   $packages = [
