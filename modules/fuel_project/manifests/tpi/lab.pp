@@ -75,6 +75,18 @@ class fuel_project::tpi::lab (
     content => template('fuel_project/tpi/tpi.sudoers.d.erb'),
   }
 
+  file { '/etc/modprobe.d/qemu-system-x86.conf':
+    mode    => '0755',
+    owner   => 'root',
+    group   => 'root',
+    content => template('fuel_project/tpi/qemu-system-x86.conf.erb'),
+  }
+  file { '/etc/modprobe.d/kvm.conf':
+    mode    => '0755',
+    owner   => 'root',
+    group   => 'root',
+    content => template('fuel_project/tpi/kvm.conf.erb'),
+  }
   
   ## to avoid network problems with jumbo frames 
   #
