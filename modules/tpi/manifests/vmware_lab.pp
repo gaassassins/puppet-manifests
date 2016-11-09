@@ -2,7 +2,7 @@
 class tpi::vmware_lab (
   $vmware_ws_installer = 'VMware-Workstation-Full-10.0.2-1744117.x86_64.bundle',
   $vmware_ws_serial = '',
-  $vmware_ws_envs = [ 'vsphere', 'nsx' ],
+  $vmware_ws_envs = [ 'vsphere',  ],
   $rsync_server = '127.0.0.1',
 ) {
 
