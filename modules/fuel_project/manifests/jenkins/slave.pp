@@ -232,7 +232,7 @@ class fuel_project::jenkins::slave (
       user     => 'fuel_devops',
       password => 'fuel_devops',
     }
-    # /python-devops installation
+   # /python-devops installation
 
     $system_tests_packages = [
       # dependencies
@@ -309,8 +309,9 @@ class fuel_project::jenkins::slave (
     }
 
     sysctl { 'vm.swappiness' :
-      value => '0',
+      value => '1',
     }
+
   }
 
   # provide env for building packages, actaully for "make sources"
