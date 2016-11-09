@@ -3,6 +3,7 @@ class fuel_project::tpi::lab (
   #$btsync_secret = $fuel_project::tpi::params::btsync_secret,
   $sudo_commands = [ '/sbin/ebtables', '/sbin/iptables' ],
   $local_home_basenames = [ 'jenkins' ],
+  $mtu = $fuel_project::tpi::params::mtu,
 ) {
 
   class { '::tpi::nfs_client' :
@@ -60,4 +61,17 @@ class fuel_project::tpi::lab (
     content => template('fuel_project/tpi/tpi.sudoers.d.erb'),
   }
 
+  
+  ## to avoid network problems with jumbo frames 
+  #
+  # This discussion: http://ubuntuforums.org/showthread.php?t=1284176 implies that when 
+  # you have 'auto eth0' the mtu is set by the dhcp server and cannot be overriden in eth0.cfg. 
+  # They have some suggestions there, but I simply set the mtu in /etc/rc.local
+  # Edit: This bug https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1317811 
+  # seems to cover this issue. To prevent the network errors, you need to also run the command:
+  # sudo ethtool -K eth0 sg off
+  # Or you will continue to have errors.
+  exec { 'ethtool sg off':
+    command => 'for link in $(ip link show | grep -v ether | grep eth | cut -d ":" -f2); do sudo ethtool -K $link sg off; done',
+  }
 }
