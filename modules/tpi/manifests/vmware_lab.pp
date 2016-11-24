@@ -20,15 +20,10 @@ class tpi::vmware_lab (
   $vmware_home='/var/lib/vmware'
   $vmware_shared_home="${vmware_home}/Shared VMs"
 
-  #sysctl { 'net.inet.raw.maxdgram' :
-  #  value => '16384',
-  #}
-
   file { [ $vmware_home, $vmware_shared_home ]:
     ensure => directory,
-    mode   => '0655',
-    owner  => 'root',
-    group  => 'root',
+    mode   => '0755',
+    owner  => 'vmware',
     recurse => true,
   }
 
