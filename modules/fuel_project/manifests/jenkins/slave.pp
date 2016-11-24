@@ -78,6 +78,7 @@ class fuel_project::jenkins::slave (
   $verify_fuel_stats                    = false,
   $verify_fuel_web                      = false,
   $verify_fuel_web_npm_packages         = ['casperjs','grunt-cli','gulp','phantomjs'],
+  $common_packages                      = ['git','python-seed-client','python-jenkins'],
   $verify_jenkins_jobs                  = false,
   $workspace                            = '/home/jenkins/workspace',
   $x11_display_num                      = 99,
@@ -116,7 +117,7 @@ class fuel_project::jenkins::slave (
     clean_seeds  => true,
   }
 
-  ensure_packages(['git', 'python-seed-client'])
+  ensure_packages($common_packages)
 
   # release status reports
   if ($build_fuel_iso == true or $run_tests == true) {
