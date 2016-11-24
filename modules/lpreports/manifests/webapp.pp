@@ -12,13 +12,10 @@
 #   [*nginx_error_log*] - error log file path
 #   [*nginx_log_format*] - log file format
 #   [*package*] - String, package name(could contain or not contain version)
-#   [*reports*] - reports configuration file entries
-#   [*review_filters*] - reports configuration file entries
 #   [*ssl_certificate*] - ssl certificate file path
 #   [*ssl_certificate_contents*] - ssl certificate file contents
 #   [*ssl_key*] - ssl key file path
 #   [*ssl_key_contents*] - ssl key file contents
-#   [*teams*] - team configuration file entries
 #
 class lpreports::webapp (
   $config                   = {},
@@ -30,17 +27,12 @@ class lpreports::webapp (
   $nginx_error_log          = '/var/log/nginx/error.log',
   $nginx_log_format         = undef,
   $package                  = 'python-lpreports',
-  $reports                  = {},
-  $review_filters           = {},
   $ssl_certificate          = '/etc/ssl/certs/lpreports.crt',
   $ssl_certificate_contents = undef,
   $ssl_key                  = '/etc/ssl/private/lpreports.key',
   $ssl_key_contents         = undef,
-  $teams                    = {},
 ) {
-  if (!defined(Class['::nginx'])) {
-    class { '::nginx' :}
-  }
+  include ::nginx
   package { $package :
     ensure => 'latest',
   }
@@ -205,6 +197,18 @@ class lpreports::webapp (
     user    => 'lpreports',
     hour    => '*/6',
     minute  => '36',
+    require => [
+      Package[$package],
+      File[$logdir],
+      File['/var/lock/lpreports'],
+    ],
+  }
+
+  cron { 'lpreports-sync-milestones' :
+    command => "/usr/bin/flock -xn /var/lock/lpreports/sync-milestones.lock /usr/bin/timeout -k10810 10800 ${managepy_path} sync-milestones >> ${logdir}/sync_milestones.log 2>&1",
+    user    => 'lpreports',
+    hour    => '*',
+    minute  => '*/30',
     require => [
       Package[$package],
       File[$logdir],

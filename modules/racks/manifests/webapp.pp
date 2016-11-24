@@ -40,7 +40,8 @@ class racks::webapp (
   $nginx_error_log       = '/var/log/nginx/error.log',
   $nginx_log_format      = undef,
   $nginx_server_name     = $::fqdn,
-  $package               = ['python-django-racks'],
+  $package               = 'python-django-racks',
+  $package_doc           = 'python-django-racks-doc',
   $ssl_cert_file         = '/etc/ssl/certs/racks.crt',
   $ssl_cert_file_content = '',
   $ssl_key_file          = '/etc/ssl/private/racks.key',
@@ -50,13 +51,24 @@ class racks::webapp (
 ) {
   class { 'uwsgi' :}
 
+  user { $user :
+    ensure     => 'present',
+    managehome => true,
+    home       => "/var/lib/${user}",
+    system     => true,
+    shell      => '/usr/sbin/nologin',
+  }
+
   package { $package :
     ensure => 'latest',
     notify => [
       Uwsgi::Application['racks'],
-      Exec['racks-syncdb'],
-      Exec['racks-migratedb']
+      Exec['racks-migrate']
     ]
+  }
+
+  package { $package_doc :
+    ensure => 'latest',
   }
 
   file { $config_path :
@@ -65,24 +77,18 @@ class racks::webapp (
     group   => $group,
     mode    => '0400',
     content => inline_template("<%= require 'yaml' ; YAML.dump(@config) %>"),
-    require => Package[$package],
+    require => [
+      Package[$package],
+      User[$user],
+    ],
     notify  => Uwsgi::Application['racks'],
   }
 
-  exec { 'racks-syncdb' :
-    command => '/usr/share/racks/webapp/manage.py syncdb --noinput',
+  exec { 'racks-migrate' :
+    command => '/usr/bin/racks migrate',
     user    => $user,
     require => [
-      Package[$package],
-      File[$config_path]
-    ],
-  }
-
-  exec { 'racks-migratedb' :
-    command => '/usr/share/racks/webapp/manage.py migrate --all',
-    user    => $user,
-    require => [
-      Exec['racks-syncdb'],
+      User[$user],
     ],
   }
 
@@ -152,16 +158,16 @@ class racks::webapp (
     location => '/static/',
     ssl      => true,
     ssl_only => true,
-    www_root => '/usr/share/racks/webapp/racks',
+    www_root => '/usr/share/racks',
   }
 
   ::nginx::resource::location { 'racks-docs' :
-    ensure   => 'present',
-    vhost    => 'racks',
-    location => '/docs/',
-    ssl      => true,
-    ssl_only => true,
-    www_root => '/usr/share/racks',
+    ensure         => 'present',
+    vhost          => 'racks',
+    location       => '/docs/',
+    ssl            => true,
+    ssl_only       => true,
+    location_alias => '/usr/share/doc/python-django-racks/html',
   }
 
   ::nginx::resource::location { 'racks-error-pages' :
@@ -201,9 +207,9 @@ class racks::webapp (
     socket    => $uwsgi_socket,
     master    => true,
     vacuum    => true,
-    chdir     => '/usr/share/racks/webapp',
     module    => 'racks.wsgi',
     subscribe => [
+      User[$user],
       File[$config_path],
       Package[$package],
     ],

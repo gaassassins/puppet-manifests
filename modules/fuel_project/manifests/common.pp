@@ -6,18 +6,38 @@
 #   [*bind_policy*] - LDAP binding policy
 #   [*external_host*] - host deployed on external IP address
 #   [*filebeat*] - boolean to choose if the Filebeat log shipper should be installed
+#   [*hugepages*] - boolean/string/integer, value for kernel hugepages parameter
+#   [*hugepagesz*] - string/integer, value for kernel hugepagesz parameter
 #   [*kernel_package*] - kernel package to install
 #   [*ldap*] - use LDAP authentication
 #   [*ldap_base*] - LDAP base
 #   [*ldap_ignore_users*] - users ignored for LDAP checks
 #   [*ldap_uri*] - LDAP URI
+#   [*network_detection*] - autodetect network settings using DNS query
 #   [*pam_filter*] - PAM filter for LDAP
 #   [*pam_password*] - PAM password type
 #   [*puppet_cron*] - run Puppet agent by cron
 #   [*puppet_cron_ok*] - "YES, I KNOW WHAT I AM DOING, REALLY" - to confirm
 #   [*root_password_hash*] - root password
 #   [*root_shell*] - shell for root user
+#   [*ruby_version*] - Ruby version to be installed
+#   [*ssh_keys_group*] - SSH key group to apply
 #   [*tls_cacertdir*] - LDAP CA certs directory
+#
+# Hiera parameters:
+#   [*known_hosts*] - hash, variables which are passed to ssh::known_host via
+#                     create_resources to manage known_hosts file
+#     Example:
+#      fuel_project::common::known_hosts:
+#        'user':
+#          home: '/some/special/directory'
+#          overwrite: false
+#          hosts:
+#           'www.example.com':
+#             port: 2233
+#             home: '/even/more/special/directory'
+#           'www.google.com':
+#             port: 22
 #
 # Additional parameters:
 #
@@ -106,22 +126,36 @@
 #     Default:
 #       $mounts = {}
 #
+#   [*tune2fs*] - Hash, options to pass to tune2fs class
+#     $tune2fs = {
+#       '/dev/vda1' => {
+#         'action' => 'reserved_percentage',
+#         'value'  => '0.5',
+#     }
+#
 class fuel_project::common (
   $bind_policy        = '',
   $external_host      = false,
   $filebeat           = false,
+  $hugepages          = false,
+  $hugepagesz         = undef,
   $kernel_package     = undef,
+  $known_hosts        = {},
   $ldap               = false,
   $ldap_base          = '',
   $ldap_ignore_users  = '',
   $ldap_uri           = '',
+  $network_detection  = false,
   $pam_filter         = '',
   $pam_password       = '',
   $puppet_cron        = {},
   $puppet_cron_ok     = '',
   $root_password_hash = 'r00tme',
   $root_shell         = '/bin/bash',
+  $ruby_version       = undef,
+  $ssh_keys_group     = '',
   $tls_cacertdir      = '',
+  $tune2fs            = {},
 ) {
   $apparmor = hiera_hash('fuel_project::common::apparmor', {})
 
@@ -138,11 +172,22 @@ class fuel_project::common (
     'ip6-allrouters'                       => 'ff02::2',
   })
 
-
   $files = hiera_hash('fuel_project::common::files', {})
   $kernel_parameters = hiera_hash('fuel_project::common::kernel_parameters', {})
   $logrotate_rules = hiera_hash('logrotate::rules', {})
   $mounts = hiera_hash('fuel_project::common::mounts', {})
+
+  # setup static network configuration if requested
+  if($network_detection and $autonetwork_interface) {
+    file { '/etc/network/interfaces' :
+      ensure  => 'present',
+      mode    => '0644',
+      owner   => 'root',
+      group   => 'root',
+      content => template('fuel_project/common/interfaces.erb'),
+      require => Package['facter-facts-network-detection'],
+    }
+  }
 
   class { '::atop' :}
   if($filebeat) {
@@ -151,6 +196,18 @@ class fuel_project::common (
   class { '::ntp' :}
   class { '::puppet::agent' :}
   class { '::ssh::authorized_keys' :}
+
+  # if ssh_keys_group is provided - apply SSH keys group
+  if($ssh_keys_group) {
+    $keys = hiera_hash("common::infra::${ssh_keys_group}::ssh_keys", {})
+    create_resources(ssh_authorized_key,
+      $keys, {
+        ensure => present,
+        user => 'root'
+      }
+    )
+  }
+
   class { '::ssh::sshd' :
     apply_firewall_rules => $external_host,
   }
@@ -181,9 +238,15 @@ class fuel_project::common (
     'config-zabbix-agent-oom-killer-item',
     'config-zabbix-agent-ulimit-item',
     'facter-facts',
+    'facter-facts-network-detection',
     'screen',
     'tmux',
-  ])
+  ], { ensure  => latest })
+
+  # 'known_hosts' manage
+  if ($known_hosts) {
+    create_resources('ssh::known_host', $known_hosts)
+  }
 
   # install the exact version of kernel package
   # please note, that reboot must be done manually
@@ -220,15 +283,17 @@ class fuel_project::common (
   case $::osfamily {
     'Debian': {
       include ::apt
+      Apt::Source <| |> -> Package <| |>
     }
     'RedHat': {
-      class { '::yum' :}
-      class { '::yum::repos' :}
+      include ::yum
+      include ::yum::repos
       $yum_repos_gpgkey = hiera_hash('yum::gpgkey', {})
       create_resources('::yum::gpgkey', $yum_repos_gpgkey)
       $yum_versionlock = hiera_hash('yum::versionlock', {})
       create_resources('::yum::versionlock', $yum_versionlock)
       Yum::Gpgkey <| |> -> Package <| tag !='yum-plugin' |>
+      Yumrepo <| |> -> Package <| |>
     }
     default: { }
   }
@@ -299,5 +364,63 @@ class fuel_project::common (
         command => '/usr/bin/puppet agent -tvd --noop >> /var/log/puppet.log 2>&1 && /usr/bin/puppet agent -tvd >> /var/log/puppet.log 2>&1'
       }
     )
+  }
+
+  # hugepages support (PDPE1GB flag is required)
+  if ($hugepages) {
+    # prepare mount point
+    file { 'hugepages':
+      ensure => 'directory',
+      path   => '/hugepages',
+    }
+    mount { '/hugepages':
+      ensure  => 'mounted',
+      atboot  => true,
+      device  => 'hugetlbfs',
+      fstype  => 'hugetlbfs',
+      options => 'mode=1777',
+      require => File['hugepages'],
+    }
+    # prepare kernel options
+    kernel_parameter { 'hugepagesz':
+      ensure => present,
+      value  => $hugepagesz,
+    }
+    kernel_parameter { 'hugepages':
+      ensure  => present,
+      value   => $hugepages,
+      require => Kernel_parameter['hugepagesz'],
+    }
+  }
+
+  class { '::tune2fs' :
+    tune2fs => $tune2fs,
+  }
+
+  # install Ruby globally
+  include ::rvm
+  ensure_resource('rvm_system_ruby', "ruby-${ruby_version}", {
+    ensure      => 'present',
+    default_use => true,
+    require     => Class['rvm'],
+  })
+
+  # reboot when required
+  if ($reboot) {
+    if defined(File['/etc/network/interfaces']) {
+      $_subscribe = [
+        File['/etc/network/interfaces'],
+        Package[$kernel_package],
+      ]
+    } else {
+      $_subscribe = [
+        Package[$kernel_package],
+      ]
+    }
+    reboot { 'after_run':
+      apply     => 'finished',
+      when      => 'refreshed',
+      subscribe => $_subscribe,
+    }
   }
 }

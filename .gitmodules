@@ -97,7 +97,7 @@
 [submodule "modules/mongodb"]
 	path = modules/mongodb
 	url = https://github.com/puppetlabs/puppetlabs-mongodb.git
-	branch = 62e02d17046c2ca9182c6ea21351090b74cce833
+	branch = 7c198d1abeb8ca93f9aab90e769df7a0410f2305
 [submodule "modules/mysql"]
 	path = modules/mysql
 	url = https://github.com/puppetlabs/puppetlabs-mysql.git
@@ -182,3 +182,35 @@
 	path = modules/filebeat
 	url = https://github.com/fuel-infra/puppet-filebeat.git
 	branch = 5f08c82bc8508f165be8fb42b40dfb7efed7f886
+[submodule "modules/memcached"]
+	path = modules/memcached
+	url = https://github.com/fuel-infra/puppet-memcached.git
+	branch = bfa64e066a709cae8bed12ff95e9d630ad50af14
+[submodule "modules/docker"]
+	path = modules/docker
+	url = https://github.com/garethr/garethr-docker.git
+	branch = 68dd0024fb845de1839df95713154d8181349851
+[submodule "modules/zuul"]
+	path = modules/zuul
+	url = https://review.fuel-infra.org/fuel-infra/puppet-zuul.git
+	branch = 3d537f9f3c300770b2fa937d3272ee803a816ad6
+[submodule "modules/nodepool"]
+	path = modules/nodepool
+	url = https://review.fuel-infra.org/fuel-infra/puppet-nodepool.git
+	branch = 2b9186f00f56357cd73dd6fb8ea9c456afbe0ff6
+[submodule "modules/project_config"]
+	path = modules/project_config
+	url = https://github.com/openstack-infra/puppet-project_config.git
+	branch = db5cb799fb408bdc764c889acc3b30d7673543b6
+[submodule "modules/os_client_config"]
+	path = modules/os_client_config
+	url = https://review.fuel-infra.org/fuel-infra/puppet-os_client_config.git
+	branch = 712350ac89f013e41784b34c6cd168a28c5c9ac6
+[submodule "modules/gearman"]
+	path = modules/gearman
+	url = https://github.com/saz/puppet-gearman
+	branch = d5d57a817017d1e498f806b3565e4beda13c85a2
+[submodule "modules/reboot"]
+	path = modules/reboot
+	url = https://github.com/puppetlabs/puppetlabs-reboot.git
+	branch = 162632851891af69fa4e4571933f4ae0c4ccf4b6

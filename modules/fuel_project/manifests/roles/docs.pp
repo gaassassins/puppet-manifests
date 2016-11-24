@@ -191,12 +191,29 @@ class fuel_project::roles::docs (
     },
   }
 
+  # Disable mirantis fuel docs on community site
+  ::nginx::resource::location { "${community_hostname}/openstack/" :
+    vhost               => $community_hostname,
+    location            => '~ \/openstack\/.*',
+    www_root            => $www_root,
+    ssl                 => $community_ssl,
+    ssl_only            => $community_ssl,
+    location_cfg_append => {
+      return => 404,
+    },
+  }
+
   ::nginx::resource::location { "${community_hostname}/fuel-dev" :
-    vhost          => $community_hostname,
-    location       => '/fuel-dev',
-    location_alias => "${www_root}/fuel-dev-docs/fuel-dev-master",
-    ssl            => $community_ssl,
-    ssl_only       => $community_ssl,
+    vhost               => $community_hostname,
+    location            => '/fuel-dev',
+    location_alias      => "${www_root}/fuel-dev-docs/fuel-dev-master",
+    ssl                 => $community_ssl,
+    ssl_only            => $community_ssl,
+    location_cfg_append => {
+      'rewrite' => {
+        '^/fuel-dev/(.*)$' => 'http://docs.openstack.org/developer/fuel-docs',
+      }
+    },
   }
 
   # Bug: https://bugs.launchpad.net/fuel/+bug/1473440
@@ -218,13 +235,15 @@ class fuel_project::roles::docs (
     format_log          => $nginx_log_format,
     location_cfg_append => {
       'rewrite' => {
-        '^/$'                => $redirect_root_to,
-        '^/fuel-dev/?(.*)$'  => "http://${community_hostname}/fuel-dev/\$1",
-        '^/express/?$'       => '/openstack/express/latest',
-        '^/(express/.+)'     => '/openstack/$1',
-        '^/fuel/?$'          => "/openstack/fuel/fuel-${fuel_version}",
-        '^/(fuel/.+)'        => '/openstack/$1',
-        '^/openstack/fuel/$' => "/openstack/fuel/fuel-${fuel_version}",
+        '^/$'                                           => $redirect_root_to,
+        '^/fuel-dev/?(.*)$'                             => "http://${community_hostname}/fuel-dev/\$1",
+        '^/express/?$'                                  => '/openstack/express/latest',
+        '^/(express/.+)'                                => '/openstack/$1',
+        '^/fuel/?$'                                     => "/openstack/fuel/fuel-${fuel_version}",
+        '^/(fuel/.+)'                                   => '/openstack/$1',
+        '^/openstack/fuel/$'                            => "/openstack/fuel/fuel-${fuel_version}",
+        '^/openstack/fuel/fuel-9.0/operations.html$'    => '/openstack/fuel/fuel-8.0/operations.html permanent',
+        '^/openstack/fuel/fuel-master/operations?(.*)$' => '/openstack/fuel/fuel-master/index.html permanent',
       },
     },
     vhost_cfg_append    => {

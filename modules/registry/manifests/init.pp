@@ -68,6 +68,9 @@
 #   [*anonymous*] - create anonymous account
 #   [*auth_port*] - authorization service port
 #   [*auth_backend_port*] - authorization service backend port
+#   [*config_auth*] - path to auth server configuration file
+#   [*config_search*] - path to search server configuration file
+#   [*config_server*] - path to docker registry server configuration file
 #   [*expiration*] - token expiration time (in seconds)
 #   [*search_backend_port*] - search service backend port
 #   [*search_password*] - docker registry account password used by search daemon to index
@@ -104,8 +107,9 @@ class registry (
     $auth_port = 5001,
     $config_auth = '/etc/docker/registry/auth.yml',
     $config_search = '/etc/docker/registry/search.yml',
-    $config_server = '/etc/docker/registry/server.yml',
+    $config_server = '/etc/docker/registry/config.yml',
     $expiration = 900,
+    $rw_addresses = ['0.0.0.0/0'],
     $search_backend_port = 5802,
     $search_password = 'index',
     $search_port = 5002,
@@ -124,6 +128,7 @@ class registry (
     $static_users = {},
     $version = '2.3.0~ds1-1',
 ) {
+  include ::nginx
 
   $packages = {
     'docker-auth' => { ensure => installed, },
@@ -139,7 +144,7 @@ class registry (
     owner   => $service_user,
     group   => $service_group,
     mode    => '0640',
-    content => template('registry/server.yml.erb'),
+    content => template('registry/config.yml.erb'),
     require => Package['docker-registry'],
   }
 
@@ -220,7 +225,7 @@ class registry (
 
   # schedule garbage-collector runs
   cron { 'garbage-collect':
-    command => "/usr/bin/registry garbage-collect ${config_server}",
+    command => "/usr/bin/docker-registry garbage-collect ${config_server}",
     user    => $service_user,
     hour    => 3,
     minute  => 0,
@@ -249,7 +254,10 @@ class registry (
         'X-Forwarded-Proto' => '$scheme',
       },
     },
-    require             => [File[$ssl_key_global], File[$ssl_certificate_global]],
+    require             => [
+      File[$ssl_key_global],
+      File[$ssl_certificate_global]
+    ],
   }
 
   ::nginx::resource::vhost { 'registry-global' :
@@ -266,6 +274,7 @@ class registry (
     ssl_stapling_verify => true,
     proxy               => "http://127.0.0.1:${server_backend_port}",
     proxy_read_timeout  => 120,
+    location_raw_append => template('registry/limits.erb'),
     location_cfg_append => {
       client_max_body_size => '8G',
       proxy_redirect       => 'off',
@@ -274,7 +283,10 @@ class registry (
         'X-Forwarded-Proto' => '$scheme',
       },
     },
-    require             => [File[$ssl_key_global], File[$ssl_certificate_global]],
+    require             => [
+      File[$ssl_key_global],
+      File[$ssl_certificate_global]
+    ],
   }
 
   ::nginx::resource::vhost { 'registry-internal' :
@@ -291,6 +303,7 @@ class registry (
     ssl_stapling_verify => true,
     proxy               => "http://127.0.0.1:${server_backend_port}",
     proxy_read_timeout  => 120,
+    location_raw_append => template('registry/limits.erb'),
     location_cfg_append => {
       client_max_body_size => '8G',
       proxy_redirect       => 'off',
@@ -313,7 +326,9 @@ class registry (
       uwsgi_send_timeout     => '3m',
       uwsgi_intercept_errors => 'on',
     },
-    require             => Uwsgi::Application['registry-search'],
+    require             => [
+      Uwsgi::Application['registry-search'],
+    ]
   }
 
   # start services and set autostart
