@@ -13,6 +13,9 @@ class tpi::vmware_lab (
     'libxinerama1',
     'libxi6',
     'libpam-ck-connector',
+    'libxml2-dev',
+    'libxslt1-dev',
+    'python-dev'
   ]
 
   ensure_packages($vmware_packages)
